@@ -3,76 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>나의 소개</title>
+    <title>날씨 정보</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
             margin: 0;
             padding: 0;
-            background-color: #f9f9f9;
-            color: #333;
         }
-        header {
-            background-color: #ebeeeb;
-            color: white;
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
             padding: 20px;
-            text-align: center;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
         }
-        main {
-            padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        section {
-            margin-bottom: 20px;
-        }
-        h1, h2 {
-            color: #4CAF50;
-        }
-        footer {
-            text-align: center;
+        input {
+            width: calc(100% - 20px);
             padding: 10px;
-            background-color: #f1f1f1;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .hint {
+            font-size: 0.9em;
+            color: gray;
+        }
+        .weather-info {
+            margin-top: 20px;
+        }
+        .chart-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        canvas {
+            flex: 0 0 16.666%; /* 화면의 1/6 크기 */
         }
     </style>
 </head>
-<body>
-    <header>
-        <h1>나의 소개</h1>
-    </header>
-    <main>
-        <section>
-            <h2>안녕하세요!</h2>
-            <p>저는 이현제입니다. 현재 [당신의 직업/역할]으로 활동하고 있으며, [관심사 또는 취미]를 즐기고 있습니다.</p>
-        </section>
-        <section>
-            <h2>경력</h2>
-            <p>[경력 또는 주요 이력 내용을 간략히 적어주세요]</p>
-        </section>
-        <section>
-            <h2>취미와 관심사</h2>
-            <p>[당신이 좋아하는 활동, 관심 있는 분야 등을 나열하세요]</p>
-        </section>
-        <section>
-            <h2>연락처</h2>
-            <p>이메일: <a href="mailto:your.email@example.com">your.email@example.com</a></p>
-            <p>LinkedIn: <a href="https://linkedin.com/in/yourprofile" target="_blank">https://linkedin.com/in/yourprofile</a></p>
-        </section>
-        <section>
-            <h2>추천 유튜브 영상</h2>
-            <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-                <iframe src="https://www.youtube.com/embed/EgJ-onoX8yQ" 
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
-                        frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        allowfullscreen></iframe>
-            </div>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2025 이현제. All Rights Reserved.</p>
-    </footer>
+<body onclick="getWeather()">
+    <div class="container">
+        <h1>날씨 정보</h1>
+        <p class="hint">Enter 키를 누르세요</p>
+        <input type="text" id="city" placeholder="도시 이름을 입력하세요" />
+        <div class="weather-info" id="weatherInfo"></div>
+        <div class="chart-container">
+            <canvas id="weatherChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = '24109ddecb29a5405afe2a8df42c5e34';
+        let weatherChart; // Chart 객체를 저장할 변수
+
+        async function getWeather() {
+            const city = document.getElementById('city').value;
+            const weatherInfoDiv = document.getElementById('weatherInfo');
+            const weatherChartCanvas = document.getElementById('weatherChart');
+
+            if (!city) {
+                weatherInfoDiv.innerHTML = '<p>도시 이름을 입력해주세요.</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric&lang=kr`);
+
+                if (!response.ok) {
+                    throw new Error('도시를 찾을 수 없습니다');
+                }
+
+                const data = await response.json();
+                weatherInfoDiv.innerHTML = `<h2>${data.name}, ${data.sys.country}</h2>`;
+
+                const chartData = {
+                    labels: ['온도 (°C)', '바람 속도 (m/s)', '습도 (%)'],
+                    datasets: [{
+                        label: '날씨 정보',
+                        data: [data.main.temp, data.wind.speed, data.main.humidity],
+                        backgroundColor: ['rgba(75, 192, 192, 0.2)', 'rgba(54, 162, 235, 0.2)', 'rgba(255, 206, 86, 0.2)'],
+                        borderColor: ['rgba(75, 192, 192, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)'],
+                        borderWidth: 1
+                    }]
+                };
+
+                if (weatherChart) {
+                    weatherChart.destroy(); // 기존 차트를 제거
+                }
+
+                weatherChart = new Chart(weatherChartCanvas, {
+                    type: 'bar',
+                    data: chartData,
+                    options: {
+                        plugins: {
+                            datalabels: {
+                                anchor: 'end',
+                                align: 'top',
+                                formatter: (value) => value,
+                                color: '#333',
+                                font: {
+                                    weight: 'bold',
+                                    size: 12
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    },
+                    plugins: [ChartDataLabels]
+                });
+            } catch (error) {
+                weatherInfoDiv.innerHTML = `<p>오류: ${error.message}</p>`;
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </body>
 </html>
